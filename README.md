@@ -1,5 +1,14 @@
 # DI3SaveGameEditor
+## May the 4th be with you.
+
 Packer and unpacker for Disney Infinity save game files. 
+
+You can find your savegame files here:
+```
+C:\Users\[WindowsUserName]\AppData\Roaming\Disney Interactive\Disney Infinity 1.0\[ID]\SavedGame\win32
+C:\Users\[WindowsUserName]\AppData\Roaming\Disney Interactive\Disney Infinity 3.0\[ID]\SavedGame\user0
+```
+
 
 ## Usage
 
