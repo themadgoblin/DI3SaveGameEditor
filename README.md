@@ -2,6 +2,7 @@
 ## May the 4th be with you.
 
 Packer and unpacker for Disney Infinity save game files. 
+Original hashing function by Bob Jenkins, Dec 1996. Code can be found on the hash directory.
 
 You can find your savegame files here:
 ```
