@@ -28,6 +28,38 @@ inflate.py -d <input_file> <output_file>
 inflate.py -c <input_file> <output_file>
 ```
 
+### Extract the screenshot of the savegame file and convert it to PNG
+
+```
+
+$ python3 inflate.py -d SCCA0 SCCA0.dec
+Parsed header:
+  Version: 519
+  Total Filesize: 51968
+  Storage Compression: True
+  Original Size: 108295
+  Unpadded Size: 51904
+  Storage Encryption: False
+CMP1 Block info:
+  Magic: CMP1
+  Uncompressed Size: 108295
+  Compressed Size: 51855
+  Uncompressed Checksum: 0xFC8C1BF2
+  Compressed Checksum: 0x8EFAF63C
+Decompressed data written to: SCCA0.dec
+
+$ python3 DecodedScreenshotFileToBin.py SCCA0.dec
+Wrote 50880 bytes to SCCA0.bin
+SCREENSHOT_WIDTH  = 424
+SCREENSHOT_HEIGHT = 240
+
+$ python3 binToPng.py SCCA0.bin 424 240 SCCA0.png
+Decompressed to SCCA0.png
+
+```
+
+
+
 ## Supported versions
 
 | Platform   | Version   | Status   |
