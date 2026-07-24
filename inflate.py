@@ -1,4 +1,4 @@
-import sys
+import argparse
 import zlib
 import struct
 
@@ -14,6 +14,18 @@ import struct
 # uint32 compressedSize;
 # uint32 decompressedHash;
 # uint32 compressedHash;
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(description="Compress or decompress DI save files")
+    mode_group = parser.add_mutually_exclusive_group(required=True)
+    mode_group.add_argument('-c', '--compress', action=argparse.BooleanOptionalAction, help='Compress input file')
+    mode_group.add_argument('-d', '--decompress', action=argparse.BooleanOptionalAction, help='Decompress input file')
+    parser.add_argument('-e', '--endian', choices=['big', 'little'], default='big', help='Endianness for header fields (default: big)')
+    parser.add_argument('input_file', help='Path to input file')
+    parser.add_argument('output_file', help='Path to output file')
+    return parser.parse_args()
+
 
 def hash_file(k: bytes, length: int, initval: int) -> int:
     def mix(a, b, c):
@@ -57,17 +69,15 @@ def hash_file(k: bytes, length: int, initval: int) -> int:
     a, b, c = mix(a & 0xffffffff, b & 0xffffffff, c & 0xffffffff)
     return c & 0xffffffff
 
-def calculate_checksum(data):
-    return 0x00000000
 
-def decompress_file(input_filename, output_filename):
+def decompress_file(input_filename, output_filename, endian):
     with open(input_filename, 'rb') as f:
-        version = struct.unpack('<I', f.read(4))[0]
-        total_filesize = struct.unpack('<I', f.read(4))[0]
-        storage_compression = struct.unpack('<I', f.read(4))[0]
-        original_size = struct.unpack('<I', f.read(4))[0]
-        unpadded_size = struct.unpack('<I', f.read(4))[0]
-        storage_encryption = struct.unpack('<I', f.read(4))[0]
+        version = struct.unpack(f'{endian}I', f.read(4))[0]
+        total_filesize = struct.unpack(f'{endian}I', f.read(4))[0]
+        storage_compression = struct.unpack(f'{endian}I', f.read(4))[0]
+        original_size = struct.unpack(f'{endian}I', f.read(4))[0]
+        unpadded_size = struct.unpack(f'{endian}I', f.read(4))[0]
+        storage_encryption = struct.unpack(f'{endian}I', f.read(4))[0]
 
         print("Parsed header:")
         print(f"  Version: {version}")
@@ -97,10 +107,10 @@ def decompress_file(input_filename, output_filename):
             print("Error: CMP1 marker not found.")
             return
 
-        uncompressed_size = struct.unpack('<i', f.read(4))[0]
-        compressed_size = struct.unpack('<i', f.read(4))[0]
-        uncompressed_checksum = struct.unpack('<I', f.read(4))[0]
-        compressed_checksum = struct.unpack('<I', f.read(4))[0]
+        uncompressed_size = struct.unpack(f'{endian}i', f.read(4))[0]
+        compressed_size = struct.unpack(f'{endian}i', f.read(4))[0]
+        uncompressed_checksum = struct.unpack(f'{endian}I', f.read(4))[0]
+        compressed_checksum = struct.unpack(f'{endian}I', f.read(4))[0]
         compressed_data = f.read()
 
     print("CMP1 Block info:")
@@ -118,11 +128,12 @@ def decompress_file(input_filename, output_filename):
     except zlib.error as e:
         print(f"Decompression failed: {e}")
 
-def compress_file(input_filename, output_filename):
+
+def compress_file(input_filename, output_filename, endian):
     with open(input_filename, 'rb') as f:
         raw_data = f.read()
 
-    compressed_data = zlib.compress(raw_data)
+    compressed_data = zlib.compress(raw_data, level=1)
     uncompressed_size = len(raw_data)
     compressed_size = len(compressed_data)
 
@@ -132,10 +143,10 @@ def compress_file(input_filename, output_filename):
     # Build CMP1 block
     cmp1_block = b''
     cmp1_block += b'CMP1'
-    cmp1_block += struct.pack('<i', uncompressed_size)
-    cmp1_block += struct.pack('<i', compressed_size)
-    cmp1_block += struct.pack('<I', uncompressed_checksum)
-    cmp1_block += struct.pack('<I', compressed_checksum)
+    cmp1_block += struct.pack(f'{endian}i', uncompressed_size)
+    cmp1_block += struct.pack(f'{endian}i', compressed_size)
+    cmp1_block += struct.pack(f'{endian}I', uncompressed_checksum)
+    cmp1_block += struct.pack(f'{endian}I', compressed_checksum)
     cmp1_block += compressed_data
 
     # Pad to 16-byte boundary
@@ -145,12 +156,13 @@ def compress_file(input_filename, output_filename):
     total_filesize = 64 + unpadded_size
 
     with open(output_filename, 'wb') as out:
-        out.write(struct.pack('<I', 519))  # version
-        out.write(struct.pack('<I', total_filesize))  # totalFilesize
-        out.write(struct.pack('<I', 1))  # StorageCompression (True)
-        out.write(struct.pack('<I', uncompressed_size))  # originalSize
-        out.write(struct.pack('<I', unpadded_size))  # unpaddedSize
-        out.write(struct.pack('<I', 0))  # StorageEncryption (False)
+        out.write(struct.pack(f'{endian}I', 519))  # version
+        out.write(struct.pack(f'{endian}I', total_filesize))  # totalFilesize
+        out.write(struct.pack(f'{endian}I', 1))  # StorageCompression (True)
+        out.write(struct.pack(f'{endian}I', uncompressed_size))  # originalSize
+        # out.write(struct.pack(f'{endian}I', unpadded_size))  # unpaddedSize
+        out.write(struct.pack(f'{endian}I', 0))  # unpaddedSize (fixed to 0 - corrupts DI2 saves otherwise).
+        out.write(struct.pack(f'{endian}I', 0))  # StorageEncryption (False)
         out.write(b'\x00' * (64 - 24))  # pad to 64 bytes
 
         out.write(cmp1_block)
@@ -164,18 +176,13 @@ def compress_file(input_filename, output_filename):
     print(f"  Uncompressed Checksum: 0x{uncompressed_checksum:08X}")
     print(f"  Compressed Checksum: 0x{compressed_checksum:08X}")
 
+
 if __name__ == '__main__':
-    if len(sys.argv) != 4 or sys.argv[1] not in ('-c', '-d'):
-        print(f"Usage:")
-        print(f"  {sys.argv[0]} -d <input_file> <output_file>    # Decompress")
-        print(f"  {sys.argv[0]} -c <input_file> <output_file>    # Compress")
-        sys.exit(1)
+    args = parse_args()
 
-    mode = sys.argv[1]
-    input_file = sys.argv[2]
-    output_file = sys.argv[3]
+    endian = ">" if args.endian == "big" else "<"
 
-    if mode == '-d':
-        decompress_file(input_file, output_file)
-    elif mode == '-c':
-        compress_file(input_file, output_file)
+    if args.decompress:
+        decompress_file(args.input_file, args.output_file, endian)
+    else:
+        compress_file(args.input_file, args.output_file, endian)
