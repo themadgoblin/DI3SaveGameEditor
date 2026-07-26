@@ -4,26 +4,53 @@
 Packer and unpacker for Disney Infinity save game files. 
 Original hashing function by Bob Jenkins, Dec 1996. Code can be found on the hash directory.
 
-You can find your savegame files here:
+You can find your savegame files for PC here:
 ```
 C:\Users\[WindowsUserName]\AppData\Roaming\Disney Interactive\Disney Infinity 1.0\[ID]\SavedGame\win32
 C:\Users\[WindowsUserName]\AppData\Roaming\Disney Interactive\Disney Infinity 3.0\[ID]\SavedGame\user0
 ```
 
+For other platforms (like Wii U) you will need a modded console with a save manager to extract the raw save file.
+*NOTE: Please look online for information on how to do so, this is not the scope of this project.*
+
+## Requirements
+
+* Python version 3.8 or newer
+* Access to save raw save file if playing other versions other than PC. See above section.
 
 ## Usage
+```
+usage: inflate.py [-h] (-c | --compress | --no-compress | -d | --decompress | --no-decompress)
+                  [-e {big,little}]
+                  input_file output_file
 
-Requires Python 3
+Compress or decompress DI save files
 
-### Decompress a file
+positional arguments:
+  input_file            Path to input file
+  output_file           Path to output file
 
+options:
+  -h, --help            show this help message and exit
+  -c, --compress, --no-compress
+                        Compress input file
+  -d, --decompress, --no-decompress
+                        Decompress input file
+  -e {big,little}, --endian {big,little}
+                        Endianness for header fields (default: big)
+```
+
+Set the endianness according to the platform the save file is from:
+* Wii U uses big-endian.
+* PC uses little-endian.
+
+### Decompress a File
 ```
 inflate.py -d <input_file> <output_file>
 
 ```
 
-### Compress a file
-
+### Compress a File
 ```
 inflate.py -c <input_file> <output_file>
 ```
@@ -59,46 +86,48 @@ Decompressed to SCCA0.png
 ```
 
 
+## Supported DI Games
 
-## Supported versions
-
-| Platform   | Version   | Status   |
+| Platform   | DI Game   | Status   |
 |------------|-----------|----------|
 | PC         | 1.0       | Works    |
 | PC         | 2.0       | Untested |
 | PC         | 3.0       | Untested |
+| Wii U      | 2.0       | Works    |
 
 
-## Supported files
+## Save Files Explanation
 
-Savegames on PC use a naming convention:
+Savegames use a naming convention:
 
 [Type of save][World][Save number]
 
-### Types (incomplete)
+### Types (Incomplete)
 
 ```
 [E] Contains the HelpManager. Its purpose is unknown.
 [EH] Contains the CSaveGameSlot. Metadata about the save file.
 [S] The savegame data. Level structure, unlocks, etc...
 [SC] Thumbnail of the level.
-[P0] Special file. Only one for each player. Seems to contain global data.
+[P0] Special file. Only one for each player. Contains global data.
 ```
 
-### Worlds (incomplete)
+### Worlds (Incomplete)
+* [PZ] PSZ
+* [PX] PSX
+* [RO] TBX_Onboard
+* [RT] Takeover
+* [RR] Rumpus Room , AKA Toybox mode
+* [RI] Rumpus Room , Interior
+* [MO] Moana - Didn't release.
 
-```
-[EM] Empire Strikes Back
-[IO] Inside Out
-[PZ] PSZ
-[PX] PSX
-[BA] Marvel Battle Arena
-[MO] Moana
-[RO] TBX_Onboard
-[CW] The Clone Wars
-[RT] Takeover
-[RR] Rumpus Room , AKA Toybox mode
-[RI] Rumpus Room , Interior
+#### Disney Infinity 2.0 Playset Worlds
+* [AV] Avengers
+* [SP] Spider-Man
+* [GG] Guardians of the Galaxy
 
-```
-
+#### Disney Infinity 3.0 Playset Worlds (Incomplete)
+* [EM] Rise Against the Empire
+* [IO] Inside Out
+* [BA] Marvel Battle Arena
+* [CW] The Clone Wars
